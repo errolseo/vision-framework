@@ -1,0 +1,4 @@
+type: torch
+name: AdamW
+params:
+    lr: 2e-4

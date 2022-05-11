@@ -1,0 +1,38 @@
+defaults:
+    - data: nabirds
+    - optimizer: Adam
+    - model: beit-base-patch16-224
+
+save_dir: save/classification
+random_seed: 8
+epoch: 15
+print_freq: 10
+data:
+    batch_size:
+        train: 12
+        valid: 12
+    transform:
+        train:
+            RandomResizedCrop:
+                width: 224
+                height: 224
+            RandomRotate90: {}
+            HorizontalFlip:
+                p: 0.5
+            CoarseDropout:
+                max_holes: 8
+                max_height: 8
+                max_width: 8
+                min_holes: 4
+                min_height: 4
+                min_width: 4
+                p: 0.5
+        valid:
+            Resize:
+                width: 224
+                height: 224
+
+#wandb:
+#    entity: hes
+#    project: test
+#    name: test01
