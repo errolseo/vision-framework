@@ -51,6 +51,6 @@ optimizer:
 #    type: MultiStepLR
 #    args: {}
 wandb:
-    entity: hes
+    entity: errolseo
     project: test
     name: test01
