@@ -29,9 +29,10 @@ def main(config: DictConfig) -> None:
 
     # set wandb
     if 'wandb' in config:
-        import wandb
-        wandb.init(config=dict(config), **config.wandb)
-        wandb.watch(model)
+        if accelerator.is_local_main_process:
+            import wandb
+            wandb.init(config=dict(config), **config.wandb)
+            wandb.watch(model)
 
     def accuracy(output, target, top_k=(1,)):
         max_k = max(top_k)
@@ -59,7 +60,7 @@ def main(config: DictConfig) -> None:
         if mode == "train":
             model.train()
         else:
-            model.valid()
+            model.eval()
 
         end = time.time()
         for i, (source, targets) in enumerate(data_loader):

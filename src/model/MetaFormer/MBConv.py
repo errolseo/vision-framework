@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 class SwishImplementation(torch.autograd.Function):
     @staticmethod
     def forward(ctx, i):
@@ -162,9 +163,3 @@ class MBConvBlock(nn.Module):
                 x = drop_connect(x, p=self._drop_connect_rate, training=self.training)
             x = x + inputs  # skip connection
         return x
-if __name__ == '__main__':
-    input=torch.randn(1,3,112,112)
-    mbconv=MBConvBlock(ksize=3,input_filters=3,output_filters=3,expand_ratio=4,stride=1)
-    print(mbconv)
-    out=mbconv(input)
-    print(out.shape)

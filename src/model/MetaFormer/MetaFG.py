@@ -8,7 +8,9 @@ from timm.models.registry import register_model
 from timm.models.layers import trunc_normal_
 import numpy as np
 from .MBConv import MBConvBlock
-from .MHSA import MHSABlock,Mlp
+from .MHSA import MHSABlock, Mlp
+
+
 def _cfg(url='', **kwargs):
     return {
         'url': url,
@@ -206,9 +208,3 @@ def MetaFG_2(pretrained=False, **kwargs):
         load_pretrained(
             model, num_classes=model.num_classes, in_chans=kwargs.get('in_chans', 3))
     return model
-if __name__ == "__main__":
-    x = torch.randn([2, 3, 224, 224])
-    model = MetaFG()
-    import ipdb;ipdb.set_trace()
-    output = model(x)
-    print(output.shape)

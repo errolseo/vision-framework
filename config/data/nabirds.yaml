@@ -1,5 +1,4 @@
 type: ImageFolder
 path:
-    train: /data/errol/vision/nabirds/images
-ratio: 0.8
-random_split_seed: 135
+    train: /data/errol/nabirds/data/train
+    valid: /data/errol/nabirds/data/valid

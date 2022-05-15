@@ -35,9 +35,9 @@ def make_transform(transforms_params):
 def build_data(data):
     if data.type == 'ImageFolder':
         from torchvision.datasets import ImageFolder
-        if "vaild" in data.path:
-            train_ds = ImageFolder(data.path.train, transform=make_transform(data.transform.train))
-            valid_ds = ImageFolder(data.path.valid, transform=make_transform(data.transform.valid))
+        if "valid" in data.path:
+            train_ds = LazyDataset(ImageFolder(data.path.train), transform=make_transform(data.transform.train))
+            valid_ds = LazyDataset(ImageFolder(data.path.valid), transform=make_transform(data.transform.valid))
         else:
             ds = ImageFolder(data.path.train)
             if "ratio" in data:
