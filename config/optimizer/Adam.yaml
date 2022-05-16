@@ -1,7 +1,7 @@
 type: torch
 name: Adam
 params:
-    lr: 1e-3
+    lr: 1e-4
     betas:
         - 0.9
         - 0.999

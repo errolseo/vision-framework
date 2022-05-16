@@ -1,16 +1,19 @@
 defaults:
+    - _self_
     - data: nabirds
     - optimizer: Adam
-    - model: beit-base-patch16-224
+    - model: beit-base-patch16-224-pt22k
 
 save_dir: save/classification
 random_seed: 8
-epoch: 15
-print_freq: 10
+epoch: 100
+print_freq: 20
+valid_freq: 5
+
 data:
     batch_size:
-        train: 12
-        valid: 12
+        train: 96
+        valid: 96
     transform:
         train:
             RandomResizedCrop:

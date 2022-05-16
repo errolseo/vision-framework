@@ -1,17 +1,20 @@
 
+import os
 import time
-import torch
 
+import torch
 import hydra
 from omegaconf import DictConfig
-from accelerate import Accelerator
+from accelerate import Accelerator, DistributedDataParallelKwargs
 
 from src import build_model, build_criterion, build_optimizer, build_data
-from src.utils import set_seed, AverageMeter, ProgressMeter
+from src.utils import set_seed, accuracy, AverageMeter, ProgressMeter
 
 @hydra.main(config_path="config")
 def main(config: DictConfig) -> None:
+    # set
     set_seed(config.random_seed)
+    os.makedirs(os.path.join(os.getcwd(), "model"), exist_ok=True)
 
     # build assets
     train_dl, valid_dl = build_data(config.data)
@@ -20,12 +23,9 @@ def main(config: DictConfig) -> None:
     optimizer = build_optimizer(config.optimizer, model.parameters())
 
     # set accelerator
-    accelerator = Accelerator()
-    model, optimizer, train_dl = accelerator.prepare(model, optimizer, train_dl)
-    if valid_dl:
-        valid_dl = accelerator.prepare(valid_dl)
-    if criterion:
-        criterion = accelerator.prepare(criterion)
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+    accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
+    model, optimizer, train_dl, valid_dl = accelerator.prepare(model, optimizer, train_dl, valid_dl)
 
     # set wandb
     if 'wandb' in config:
@@ -34,37 +34,20 @@ def main(config: DictConfig) -> None:
             wandb.init(config=dict(config), **config.wandb)
             wandb.watch(model)
 
-    def accuracy(output, target, top_k=(1,)):
-        max_k = max(top_k)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(max_k, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in top_k:
-            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
-
     def run_epoch(epoch, data_loader, mode='train'):
-        # set stdout function
+        model.train() if mode == "train" else model.eval()
+
+        # set logger
         batch_time = AverageMeter('Time', ':6.3f')
         data_time = AverageMeter('Data', ':6.3f')
         losses = AverageMeter('Loss', ':.4e')
         acc = AverageMeter('Acc', ':6.2f')
         progress = ProgressMeter(len(data_loader), batch_time, data_time, losses, acc,
-                                 prefix="Epoch: [{}]".format(epoch))
+                                 prefix=f"Epoch (T): [{epoch}]" if mode == "train" else f"Epoch (V): [{epoch}]")
 
-        if mode == "train":
-            model.train()
-        else:
-            model.eval()
-
-        end = time.time()
+        start_time = time.time()
         for i, (source, targets) in enumerate(data_loader):
-            data_time.update(time.time() - end)
+            data_time.update(time.time() - start_time)
 
             optimizer.zero_grad()
             if config.model.type == "transformers":
@@ -82,17 +65,30 @@ def main(config: DictConfig) -> None:
             losses.update(loss.item(), source.size(0))
             acc1 = accuracy(accelerator.gather(logits), accelerator.gather(targets))
             acc.update(acc1[0].item(), source.size(0))
-            batch_time.update(time.time() - end)
+            batch_time.update(time.time() - start_time)
 
-            if (i % config.print_freq == 0) or (i + 1 == len(data_loader)):
+            if i % config.print_freq == 0:
                 progress.print(accelerator, i)
-            end = time.time()
+            start_time = time.time()
 
+        progress.print(accelerator, len(data_loader))
+        if accelerator.is_local_main_process:
+            wandb.log({
+                f"{mode}_loss": losses.avg,
+                f"{mode}_acc": acc.avg
+            })
+
+    # running train and valid
     for ep in range(config.epoch):
         run_epoch(ep, train_dl)
-        if valid_dl:
+        if valid_dl and (ep + 1)  % config.valid_freq == 0:
             with torch.no_grad():
                 run_epoch(ep, valid_dl, mode='valid')
+
+            accelerator.save({
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict()
+            }, os.path.join(os.getcwd(), "model", f"epoch_{ep + 1}.pth"))
 
 
 if __name__ == '__main__':

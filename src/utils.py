@@ -11,6 +11,20 @@ def set_seed(random_seed):
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed_all(random_seed)
 
+def accuracy(output, target, top_k=(1,)):
+    max_k = max(top_k)
+    batch_size = target.size(0)
+
+    _, pred = output.topk(max_k, 1, True, True)
+    pred = pred.t()
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+    res = []
+    for k in top_k:
+        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+        res.append(correct_k.mul_(100.0 / batch_size))
+    return res
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

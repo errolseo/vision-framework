@@ -35,24 +35,24 @@ def make_transform(transforms_params):
 def build_data(data):
     if data.type == 'ImageFolder':
         from torchvision.datasets import ImageFolder
+
+        train_ds = ImageFolder(data.path.train)
+        valid_ds = None
+
         if "valid" in data.path:
-            train_ds = LazyDataset(ImageFolder(data.path.train), transform=make_transform(data.transform.train))
-            valid_ds = LazyDataset(ImageFolder(data.path.valid), transform=make_transform(data.transform.valid))
-        else:
-            ds = ImageFolder(data.path.train)
-            if "ratio" in data:
-                # Calculate the length of the dataset
-                len_ds = len(ds)
-                len_train_ds = int(len_ds * data.ratio)
-                len_valid_ds = len_ds - len_train_ds
-                # Randomly split from all datasets
-                train_ds, valid_ds = random_split(ds, [len_train_ds, len_valid_ds],
-                                                  generator=torch.Generator().manual_seed(data.random_split_seed))
-                train_ds = LazyDataset(train_ds, transform=make_transform(data.transform.train))
-                valid_ds = LazyDataset(valid_ds, transform=make_transform(data.transform.valid))
-            else:
-                train_ds = ds
-                valid_ds = None
+            valid_ds = ImageFolder(data.path.valid)
+        elif "split_ratio" in data:
+            # Calculate the length of the dataset
+            len_ds = len(train_ds)
+            len_train_ds = int(len_ds * data.ratio)
+            len_valid_ds = len_ds - len_train_ds
+            # Randomly split from all datasets
+            train_ds, valid_ds = random_split(train_ds, [len_train_ds, len_valid_ds],
+                                              generator=torch.Generator().manual_seed(data.random_split_seed))
+
+        train_ds = LazyDataset(train_ds, transform=make_transform(data.transform.train))
+        if valid_ds:
+            valid_ds = LazyDataset(valid_ds, transform=make_transform(data.transform.train))
     else:
         raise Exception('Invalid data type.')
 

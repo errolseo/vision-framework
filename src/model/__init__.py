@@ -1,6 +1,7 @@
 
 from .merge import MergeModel
 from .transforemrs import Transformers
+from .MetaFormer.MetaFG import *
 
 def build_model(model):
 

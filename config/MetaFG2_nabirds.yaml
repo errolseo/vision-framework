@@ -1,22 +1,24 @@
 defaults:
+    - _self_
     - data: nabirds
     - optimizer: Adam
-    - model: beit-base-patch16-224
+    - model: MetaFG_2.yaml
 
-save_dir: save/classification
 random_seed: 8
-epoch: 15
-print_freq: 10
+epoch: 100
+print_freq: 20
+valid_freq: 5
+
 data:
     batch_size:
-        train: 12
-        valid: 12
+        train: 64
+        valid: 64
     transform:
         train:
             RandomResizedCrop:
                 width: 224
                 height: 224
-            RandomRotate90: {}
+            RandomRotate90: { }
             HorizontalFlip:
                 p: 0.5
             CoarseDropout:
@@ -32,7 +34,14 @@ data:
                 width: 224
                 height: 224
 
-#wandb:
-#    entity: hes
-#    project: test
-#    name: test01
+#scheduler:
+#    type: MultiStepLR
+#    args: {}
+criterion:
+    name: CrossEntropyLoss
+    params: {}
+
+wandb:
+    entity: errolseo
+    project: test
+    name: test01
