@@ -1,0 +1,5 @@
+type: CosineAnnealingWarmUpRestarts
+params:
+    T_0: 50
+    T_up: 10
+    gamma: 0.5

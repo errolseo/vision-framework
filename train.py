@@ -7,8 +7,13 @@ import hydra
 from omegaconf import DictConfig
 from accelerate import Accelerator, DistributedDataParallelKwargs
 
-from src import build_model, build_criterion, build_optimizer, build_data
+from src.data import build_data
+from src.model import build_model
+from src.criterion import build_criterion
+from src.optimizer import build_optimizer
+from src.scheduler import build_scheduler
 from src.utils import set_seed, accuracy, AverageMeter, ProgressMeter
+
 
 @hydra.main(config_path="config")
 def main(config: DictConfig) -> None:
@@ -17,15 +22,17 @@ def main(config: DictConfig) -> None:
     os.makedirs(os.path.join(os.getcwd(), "model"), exist_ok=True)
 
     # build assets
-    train_dl, valid_dl = build_data(config.data)
+    train_dl, valid_dl = build_data(config.data, config.batch_size, config.transforms)
     model = build_model(config.model)
     criterion = build_criterion(config.criterion) if "criterion" in config else None
     optimizer = build_optimizer(config.optimizer, model.parameters())
+    scheduler = build_scheduler(optimizer, config.scheduler)
 
     # set accelerator
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
-    model, optimizer, train_dl, valid_dl = accelerator.prepare(model, optimizer, train_dl, valid_dl)
+    train_dl, valid_dl, model, optimizer, scheduler = \
+        accelerator.prepare(train_dl, valid_dl, model, optimizer, scheduler)
 
     # set wandb
     if 'wandb' in config:
@@ -76,7 +83,7 @@ def main(config: DictConfig) -> None:
             wandb.log({
                 f"{mode}_loss": losses.avg,
                 f"{mode}_acc": acc.avg
-            })
+            }, step=epoch)
 
     # running train and valid
     for ep in range(config.epoch):

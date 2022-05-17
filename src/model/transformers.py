@@ -1,6 +1,6 @@
 
+import torch.nn as nn
 from transformers import AutoModel
-from torch import nn
 
 
 class Transformers(nn.Module):

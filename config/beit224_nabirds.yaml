@@ -1,7 +1,7 @@
 defaults:
     - _self_
     - data: nabirds
-    - optimizer: Adam
+    - optimizer: AdamW
     - model: beit-base-patch16-224-pt22k
 
 save_dir: save/classification
